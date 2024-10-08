@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import { 
+  useState,
+  useEffect
+
+} from 'react';
+import axios from 'axios';
+import { set } from 'date-fns';
 
 export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('Todas las categorías');
@@ -6,6 +12,46 @@ export default function App() {
   const [selectedCommittee, setSelectedCommittee] = useState('Todas las juntas');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // get data from http://ec2-52-73-158-201.compute-1.amazonaws.com:8000/publicaciones/
+  // use axios to get data from the API
+  const [publicaciones, setPublicaciones] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    // Realiza la solicitud a la API cuando el componente se monta
+    axios.get(`https://backend-dashboard-tau.vercel.app/publicaciones?page=${currentPage}`) // URL de la API
+      .then(response => {
+        // Actualiza el estado con las publicaciones recibidas
+
+        setPublicaciones(response.data.results);
+
+        console.log(response.data)
+        console.log(response.data.results);
+        setLoading(false); // Indica que ya no está cargando
+      })
+      .catch(err => {
+        // Si ocurre un error, lo guarda en el estado
+        setError(err);
+        setLoading(false);
+      });
+  }, [currentPage]); // [] asegura que se ejecute solo una vez, al montar el componente
+
+  
+ 
+  const handlePageChange = (page) => {
+    // SIGUIENTE PÁGINA
+    if (page > 1) {
+      setCurrentPage(currentPage - 1);
+    } else{
+      // SE DEBE OBTENER DESDE EL BACKEND LA CANTIDAD DE PÁGINAS TOTALES
+      // PÁGINA ANTERIOR
+      setCurrentPage(currentPage + 1);
+    } 
+  }
+
 
   const menuItems = ['Dashboard', 'Publicaciones', 'Anuncios', 'Reportes', 'Mapa', 'Cerrar Sesión'];
 
@@ -102,6 +148,7 @@ export default function App() {
             <button style={{...styles.button, ...styles.buttonGreen}}>Aplicar filtros</button>
           </div>
         </div>
+        {/* LISTADO DE PUBLICACIONES */}
         <table style={styles.table}>
           <thead>
             <tr>
@@ -114,22 +161,34 @@ export default function App() {
             </tr>
           </thead>
           <tbody>
-            {publications.map((pub, index) => (
+            {publicaciones.map((pub, index) => (
               <tr key={index}>
-                <td style={styles.tableCell}>{pub.title}</td>
-                <td style={styles.tableCell}>{pub.description}</td>
-                <td style={styles.tableCell}>{pub.status}</td>
-                <td style={styles.tableCell}>{pub.category}</td>
-                <td style={styles.tableCell}>{pub.date}</td>
-                <td style={styles.tableCell}>{pub.committee}</td>
+                <td style={styles.tableCell}>{pub.titulo}</td>
+                <td style={styles.tableCell}>{pub.descripcion}</td>
+                <td style={styles.tableCell}>{pub.situacion.nombre}</td>
+                <td style={styles.tableCell}>{pub.categoria.nombre}</td>
+                <td style={styles.tableCell}>{pub.fecha_publicacion}</td>
+                <td style={styles.tableCell}>{pub.junta_vecinal.nombre_calle}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        {/* PAGINATION COMP */}
         <div style={styles.pagination}>
-          <span>1-3 de 50</span>
-          <button style={styles.paginationButton}>&lt;</button>
-          <button style={styles.paginationButton}>&gt;</button>
+          {
+            currentPage > 1 ? <button onClick={()=>setCurrentPage(currentPage-1) } style={styles.paginationButton}>Anterior</button> : null
+          }
+          
+          {/* <button onClick={()=>handlePageChange(currentPage) } style={styles.paginationButton}>Siguiente</button> */}
+          {/* link a */}
+          
+          
+          <span>Página {currentPage} de 50</span>
+          {
+            currentPage < 50 ? <button onClick={()=>setCurrentPage(currentPage+1) } style={styles.paginationButton}>Siguiente</button> : null
+          }
+          {/* <button onClick={()=>handlePageChange(currentPage) } style={styles.paginationButton}>Anterior</button> */}
+          {/* <a href={'http://localhost:8080/publicaciones?page='+ currentPage < 50 ? setCurrentPage(currentPage-1) : 50} style={styles.paginationButton}>Anterior</a> */}
         </div>
       </div>
     </div>
